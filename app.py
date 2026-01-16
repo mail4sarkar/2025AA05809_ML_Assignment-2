@@ -310,6 +310,12 @@ elif choice == "Diabetes Prediction":
         return processed_df
 
     if prediction_method == "Single Input":
+        # Select model first (before form)
+        model_choice = st.sidebar.selectbox("Select Model for Prediction", 
+                                            ("Random Forest", "XGBoost", "Logistic Regression", 
+                                             "Naive Bayes", "Decision Tree", "K-Nearest Neighbor"),
+                                            key="model_selector")
+        
         with st.form("single_prediction_form"):
             st.write("Enter patient details:")
             
@@ -352,10 +358,6 @@ elif choice == "Diabetes Prediction":
             if submitted:
                 input_df = pd.DataFrame([input_data])
                 processed_input_df = preprocess_input(input_df)
-
-                model_choice = st.sidebar.selectbox("Select Model for Prediction", 
-                                                ("Random Forest", "XGBoost", "Logistic Regression", 
-                                                 "Naive Bayes", "Decision Tree", "K-Nearest Neighbor"))
 
                 model = None
                 if model_choice == "Logistic Regression": model = log_reg_model
