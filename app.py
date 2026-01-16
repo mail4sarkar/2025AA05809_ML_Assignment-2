@@ -368,7 +368,9 @@ elif choice == "Diabetes Prediction":
                 elif model_choice == "XGBoost": model = xgb_model
 
                 if model:
-                    prediction_encoded = model.predict(processed_input_df)
+                    # Convert to numpy array to avoid feature name mismatch issues
+                    # Different models may have been trained with different feature names
+                    prediction_encoded = model.predict(processed_input_df.values)
                     # Handle XGBoost's specific label encoding if it outputs encoded labels
                     if model_choice == "XGBoost":
                         prediction = le.inverse_transform(prediction_encoded)
