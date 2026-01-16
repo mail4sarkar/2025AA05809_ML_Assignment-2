@@ -311,7 +311,7 @@ elif choice == "Diabetes Prediction":
 
     if prediction_method == "Single Input":
         # Select model first (before form)
-        model_choice = st.sidebar.selectbox("Select Model for Prediction", 
+        selected_model_choice = st.sidebar.selectbox("Select Model for Prediction", 
                                             ("Random Forest", "XGBoost", "Logistic Regression", 
                                              "Naive Bayes", "Decision Tree", "K-Nearest Neighbor"),
                                             key="model_selector")
@@ -360,24 +360,24 @@ elif choice == "Diabetes Prediction":
                 processed_input_df = preprocess_input(input_df)
 
                 model = None
-                if model_choice == "Logistic Regression": model = log_reg_model
-                elif model_choice == "Decision Tree": model = dt_model
-                elif model_choice == "K-Nearest Neighbor": model = knn_model
-                elif model_choice == "Naive Bayes": model = nb_model
-                elif model_choice == "Random Forest": model = rf_model
-                elif model_choice == "XGBoost": model = xgb_model
+                if selected_model_choice == "Logistic Regression": model = log_reg_model
+                elif selected_model_choice == "Decision Tree": model = dt_model
+                elif selected_model_choice == "K-Nearest Neighbor": model = knn_model
+                elif selected_model_choice == "Naive Bayes": model = nb_model
+                elif selected_model_choice == "Random Forest": model = rf_model
+                elif selected_model_choice == "XGBoost": model = xgb_model
 
                 if model:
                     # Convert to numpy array to avoid feature name mismatch issues
                     # Different models may have been trained with different feature names
                     prediction_encoded = model.predict(processed_input_df.values)
                     # Handle XGBoost's specific label encoding if it outputs encoded labels
-                    if model_choice == "XGBoost":
+                    if selected_model_choice == "XGBoost":
                         prediction = le.inverse_transform(prediction_encoded)
                     else:
                         prediction = prediction_encoded # Other models predict actual labels
 
-                    st.success(f"Predicted Diabetes Type using {model_choice}: **{prediction[0]}**") # Escaped inner f-string
+                    st.success(f"Predicted Diabetes Type using {selected_model_choice}: **{prediction[0]}**") # Escaped inner f-string
                 else:
                     st.error("Please select a model.")
 
