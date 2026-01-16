@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -185,16 +184,16 @@ def create_reference_df():
 
     # Get all columns from X_encoded from the kernel, as this is how the models were trained.
     # This is a direct copy from the notebook's X_encoded structure from the kernel state.
-    # It has 38 columns.
+    # It has 38 columns (drop_first=True was used for one-hot encoding).
     feature_columns_for_app = [
         'Insulin Levels', 'Age', 'BMI', 'Blood Pressure', 'Cholesterol Levels',
         'Waist Circumference', 'Blood Glucose Levels', 'Weight Gain During Pregnancy',
         'Pancreatic Health', 'Pulmonary Function', 'Neurological Assessments',
         'Digestive Enzyme Levels', 'Birth Weight', 'Genetic Markers_Positive',
         'Autoantibodies_Positive', 'Family History_Yes', 'Environmental Factors_Present',
-        'Physical Activity_Low', 'Physical Activity_Moderate', 'Dietary Habits_Healthy',
-        'Ethnicity_Hispanic', 'Ethnicity_Other', 'Ethnicity_White', 'Socioeconomic Factors_Low Income',
-        'Socioeconomic Factors_Middle Class', 'Smoking Status_Yes',
+        'Physical Activity_Moderate', 'Dietary Habits_Healthy',
+        'Ethnicity_Hispanic', 'Ethnicity_Other', 'Socioeconomic Factors_Middle Class',
+        'Smoking Status_Yes',
         'Alcohol Consumption_Moderate', 'Alcohol Consumption_No',
         'Glucose Tolerance Test_Impaired', 'Glucose Tolerance Test_Normal',
         'History of PCOS_Yes', 'Previous Gestational Diabetes_Yes',
@@ -286,20 +285,18 @@ elif choice == "Diabetes Prediction":
         # Fill in numerical features directly
         for col in numerical_features_names:
             if col in input_df.columns:
-                processed_df[col] = input_df[col]
+                processed_df[col] = input_df[col].values
 
         # Handle one-hot encoding for categorical features
         for original_col, possible_values in original_categorical_features_map.items():
             if original_col in input_df.columns:
                 # Get the value from the input
-                value = input_df[original_col].iloc[0] # Assuming single input for now
+                value = input_df[original_col].iloc[0]
                 
-                # If `drop_first=True` was used during training, 'No'/'Absent'/'Sedentary' etc. might not have a dedicated column
-                # We need to map the input value to the correct OHE column.
-                if value != possible_values[0]: # If value is not the first one (which was dropped if drop_first=True)
-                    ohe_col_name = f"{original_col}_{value}" # Escaped f-string
-                    if ohe_col_name in processed_df.columns:
-                        processed_df[ohe_col_name] = 1
+                # Create the OHE column name and set it to 1 if the column exists
+                ohe_col_name = f"{original_col}_{value}"
+                if ohe_col_name in processed_df.columns:
+                    processed_df[ohe_col_name] = 1
 
         # Scale numerical features (only 'Birth Weight' in our case)
         # Ensure the order is correct based on how scaler was fitted
@@ -455,5 +452,3 @@ elif choice == "Best Model Details":
     # report = classification_report(y_test, y_pred_rf, target_names=lb.classes_)
     # st.text("Classification Report:")
     # st.code(report)
-
-
