@@ -335,10 +335,12 @@ elif choice == "Diabetes Prediction":
 
     if prediction_method == "Single Input":
         # Select model first (before form)
-        selected_model_choice = st.sidebar.selectbox("Select Model for Prediction", 
+        st.sidebar.markdown("### 🤖 Model Selection")
+        selected_model_choice = st.sidebar.selectbox("Choose a Model:", 
                                             ("Random Forest", "XGBoost", "Logistic Regression", 
                                              "Naive Bayes", "Decision Tree", "K-Nearest Neighbor"),
                                             key="model_selector")
+        st.info(f"📌 Selected Model: **{selected_model_choice}**")
         
         with st.form("single_prediction_form"):
             st.write("Enter patient details:")
@@ -392,11 +394,24 @@ elif choice == "Diabetes Prediction":
                 elif selected_model_choice == "XGBoost": model = xgb_model
 
                 if model:
-                    # Use deterministic prediction function
-                    prediction = make_deterministic_prediction(model, processed_input_df, selected_model_choice)
-                    st.success(f"Predicted Diabetes Type using {selected_model_choice}: **{prediction[0]}**") # Escaped inner f-string
+                    try:
+                        # Use deterministic prediction function
+                        prediction = make_deterministic_prediction(model, processed_input_df, selected_model_choice)
+                        st.success(f"✅ Prediction Complete!")
+                        st.markdown(f"""
+                        ### 🏥 Predicted Diagnosis
+                        **{prediction[0]}**
+                        
+                        **Model:** {selected_model_choice}
+                        """)
+                    except Exception as e:
+                        st.error(f"❌ Prediction Error: {str(e)}")
+                        st.write(f"Debug Info:")
+                        st.write(f"- Selected Model: {selected_model_choice}")
+                        st.write(f"- Input Shape: {processed_input_df.shape}")
+                        st.write(f"- Expected Features: {xgb_model.n_features_in_}")
                 else:
-                    st.error("Please select a model.")
+                    st.error("❌ Please select a model.")
 
     elif prediction_method == "Upload CSV for Batch Prediction":
         uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
