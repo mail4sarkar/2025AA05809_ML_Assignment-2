@@ -5,11 +5,15 @@ import joblib
 from sklearn.metrics import classification_report
 import os
 
+# --- Set random seeds for reproducibility ---
+np.random.seed(42)
+
 # --- Load assets ---
 assets_dir = 'streamlit_assets'
 
 @st.cache_resource
 def load_assets():
+    np.random.seed(42)  # Ensure deterministic behavior when loading
     scaler = joblib.load(os.path.join(assets_dir, 'scaler.joblib'))
     lb = joblib.load(os.path.join(assets_dir, 'label_binarizer.joblib'))
     le = joblib.load(os.path.join(assets_dir, 'label_encoder.joblib')) # For XGBoost specific target handling
@@ -308,6 +312,26 @@ elif choice == "Diabetes Prediction":
         processed_df = processed_df[feature_columns_for_app]
         
         return processed_df
+    
+    # --- Helper function for deterministic model predictions ---
+    def make_deterministic_prediction(model, input_data, model_choice):
+        """Make predictions with deterministic behavior across models"""
+        np.random.seed(42)  # Ensure consistency before prediction
+        
+        # Convert to numpy array to avoid feature name mismatch issues
+        input_array = input_data.values if isinstance(input_data, pd.DataFrame) else input_data
+        
+        # Make prediction based on model type
+        prediction_encoded = model.predict(input_array)
+        
+        if model_choice == "XGBoost":
+            # XGBoost uses label_encoder
+            prediction = le.inverse_transform(prediction_encoded)
+        else:
+            # All other models (RF, LR, NB, DT, KNN) use label_binarizer
+            prediction = lb.inverse_transform(np.array([prediction_encoded]).T).flatten()
+        
+        return prediction
 
     if prediction_method == "Single Input":
         # Select model first (before form)
@@ -368,15 +392,8 @@ elif choice == "Diabetes Prediction":
                 elif selected_model_choice == "XGBoost": model = xgb_model
 
                 if model:
-                    # Convert to numpy array to avoid feature name mismatch issues
-                    # Different models may have been trained with different feature names
-                    prediction_encoded = model.predict(processed_input_df.values)
-                    # Handle XGBoost's specific label encoding if it outputs encoded labels
-                    if selected_model_choice == "XGBoost":
-                        prediction = le.inverse_transform(prediction_encoded)
-                    else:
-                        prediction = prediction_encoded # Other models predict actual labels
-
+                    # Use deterministic prediction function
+                    prediction = make_deterministic_prediction(model, processed_input_df, selected_model_choice)
                     st.success(f"Predicted Diabetes Type using {selected_model_choice}: **{prediction[0]}**") # Escaped inner f-string
                 else:
                     st.error("Please select a model.")
