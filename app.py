@@ -327,18 +327,26 @@ def create_reference_df():
         'Insulin Levels', 'Age', 'BMI', 'Blood Pressure', 'Cholesterol Levels',
         'Waist Circumference', 'Blood Glucose Levels', 'Weight Gain During Pregnancy',
         'Pancreatic Health', 'Pulmonary Function', 'Neurological Assessments',
-        'Digestive Enzyme Levels', 'Birth Weight', 'Genetic Markers_Positive',
-        'Autoantibodies_Positive', 'Family History_Yes', 'Environmental Factors_Present',
-        'Physical Activity_Moderate', 'Dietary Habits_Healthy',
-        'Ethnicity_Hispanic', 'Ethnicity_Other', 'Socioeconomic Factors_Middle Class',
+        'Digestive Enzyme Levels', 'Birth Weight',
+        'Genetic Markers_Positive',
+        'Autoantibodies_Positive', 
+        'Family History_Yes', 
+        'Environmental Factors_Present',
+        'Physical Activity_Moderate',
+        'Dietary Habits_Unhealthy',
+        'Ethnicity_Asian', 'Ethnicity_Black', 'Ethnicity_Hispanic', 'Ethnicity_Other',
+        'Socioeconomic Factors_High Income', 'Socioeconomic Factors_Upper Class',
         'Smoking Status_Yes',
-        'Alcohol Consumption_Moderate', 'Alcohol Consumption_No',
-        'Glucose Tolerance Test_Impaired', 'Glucose Tolerance Test_Normal',
-        'History of PCOS_Yes', 'Previous Gestational Diabetes_Yes',
-        'Pregnancy History_Normal', 'Cystic Fibrosis Diagnosis_Yes',
-        'Steroid Use History_Yes', 'Genetic Testing_Positive',
-        'Liver Function Tests_Normal', 'Urine Test_Ketones Present',
-        'Urine Test_Normal', 'Urine Test_Protein Present',
+        'Alcohol Consumption_Moderate',
+        'Glucose Tolerance Test_Impaired',
+        'History of PCOS_Yes', 
+        'Previous Gestational Diabetes_Yes',
+        'Pregnancy History_Complications',
+        'Cystic Fibrosis Diagnosis_Yes',
+        'Steroid Use History_Yes', 
+        'Genetic Testing_Positive',
+        'Liver Function Tests_Abnormal', 
+        'Urine Test_Ketones Present', 'Urine Test_Protein Present',
         'Early Onset Symptoms_Yes'
     ]
 
@@ -351,28 +359,32 @@ def create_reference_df():
     categorical_features_ohe = [col for col in feature_columns_for_app if col not in numerical_features_names]
 
     # Reconstruct original categorical features from their one-hot encoded counterparts for input forms
-    # This is an inverse mapping, useful for creating manual input forms.
+    # Key insight: With drop_first=True, only non-baseline categories have OHE columns.
+    # For binary features, users can select BOTH options:
+    #   - Option with OHE column (e.g., Family History_Yes) → set to 1
+    #   - Baseline option (e.g., No) → set all features to 0 (represents the dropped category)
+    # For multi-category features (e.g., Ethnicity with 5 values), show only options with OHE columns.
     original_categorical_features_map = { # Escaped
-        'Genetic Markers': ['Positive', 'Negative'],
-        'Autoantibodies': ['Positive', 'Negative'],
-        'Family History': ['Yes', 'No'],
-        'Environmental Factors': ['Present', 'Absent'],
-        'Physical Activity': ['High', 'Low', 'Moderate', 'Sedentary'], # assuming these values exist
-        'Dietary Habits': ['Healthy', 'Unhealthy'],
-        'Ethnicity': ['Asian', 'Black', 'Hispanic', 'Other', 'White'], # assuming these values exist
-        'Socioeconomic Factors': ['High Income', 'Low Income', 'Middle Class', 'Upper Class'], # assuming these values exist
-        'Smoking Status': ['Yes', 'No'],
-        'Alcohol Consumption': ['Heavy', 'Moderate', 'No'],
-        'Glucose Tolerance Test': ['Impaired', 'Normal'],
-        'History of PCOS': ['Yes', 'No'],
-        'Previous Gestational Diabetes': ['Yes', 'No'],
-        'Pregnancy History': ['Normal', 'Complications'], # assuming these values exist
-        'Cystic Fibrosis Diagnosis': ['Yes', 'No'],
-        'Steroid Use History': ['Yes', 'No'],
-        'Genetic Testing': ['Positive', 'Negative'],
-        'Liver Function Tests': ['Normal', 'Abnormal'],
-        'Urine Test': ['Glucose Present', 'Ketones Present', 'Normal', 'Protein Present'], # assuming these values exist
-        'Early Onset Symptoms': ['Yes', 'No']
+        'Genetic Markers': ['Positive', 'Negative'],  # Both allowed: Positive has column, Negative is baseline
+        'Autoantibodies': ['Positive', 'Negative'],  # Both allowed
+        'Family History': ['Yes', 'No'],  # Both allowed: Yes has column, No is baseline
+        'Environmental Factors': ['Present', 'Absent'],  # Both allowed
+        'Physical Activity': ['Moderate', 'Sedentary', 'Low', 'High'],  # Only Moderate has column; others are variants
+        'Dietary Habits': ['Unhealthy', 'Healthy'],  # Both allowed
+        'Ethnicity': ['Asian', 'Black', 'Hispanic', 'Other', 'White'],  # All 5 shown; White is dropped baseline
+        'Socioeconomic Factors': ['High Income', 'Upper Class', 'Low Income', 'Middle Class'],  # Show all
+        'Smoking Status': ['Yes', 'No'],  # Both allowed
+        'Alcohol Consumption': ['Moderate', 'Heavy', 'No'],  # All 3 shown; Heavy is dropped baseline
+        'Glucose Tolerance Test': ['Impaired', 'Normal'],  # Both allowed
+        'History of PCOS': ['Yes', 'No'],  # Both allowed
+        'Previous Gestational Diabetes': ['Yes', 'No'],  # Both allowed
+        'Pregnancy History': ['Complications', 'Normal'],  # Both allowed
+        'Cystic Fibrosis Diagnosis': ['Yes', 'No'],  # Both allowed
+        'Steroid Use History': ['Yes', 'No'],  # Both allowed
+        'Genetic Testing': ['Positive', 'Negative'],  # Both allowed
+        'Liver Function Tests': ['Abnormal', 'Normal'],  # Both allowed
+        'Urine Test': ['Ketones Present', 'Protein Present', 'Glucose Present', 'Normal'],  # All 4 options
+        'Early Onset Symptoms': ['Yes', 'No']  # Both allowed
     } # Escaped
 
     # This part needs to be very accurate to the original df columns
@@ -574,13 +586,24 @@ elif choice == "🔮 Predict":
         
         # Make prediction based on model type
         prediction_encoded = model.predict(input_array)
-        
-        if model_choice == "XGBoost":
-            # XGBoost uses label_encoder
-            prediction = le.inverse_transform(prediction_encoded)
-        else:
-            # All other models (RF, LR, NB, DT, KNN) use label_binarizer
-            prediction = lb.inverse_transform(np.array([prediction_encoded]).T).flatten()
+        # Decode predictions robustly:
+        # - If the model returns integer encoded class indices, use `le.inverse_transform`
+        # - If the model returns one-hot/binarized arrays (unlikely here), try `lb.inverse_transform`
+        try:
+            # If prediction_encoded is integer labels (e.g., array of ints), use label encoder
+            if isinstance(prediction_encoded, (list, tuple)):
+                pred_arr = np.array(prediction_encoded)
+            else:
+                pred_arr = prediction_encoded
+
+            if np.issubdtype(getattr(pred_arr, 'dtype', np.array(pred_arr).dtype), np.integer):
+                prediction = le.inverse_transform(pred_arr)
+            else:
+                # Fallback to label binarizer inverse (handles indicator matrices)
+                prediction = lb.inverse_transform(np.array([prediction_encoded]).T).flatten()
+        except Exception:
+            # As a last resort, return stringified prediction
+            prediction = np.array([str(x) for x in np.atleast_1d(prediction_encoded)])
         
         return prediction
 
@@ -708,6 +731,23 @@ elif choice == "🔮 Predict":
                                 </small>
                             </div>
                             """, unsafe_allow_html=True)
+
+                        # Debug info for troubleshooting predictions
+                        with st.expander("Debug: Processed features & model outputs"):
+                            st.write("**Processed input (first 50 cols)**")
+                            st.dataframe(processed_input_df.iloc[:, :50].T)
+                            try:
+                                pred_encoded = model.predict(processed_input_df.values)
+                                st.write("**Encoded prediction:**", pred_encoded)
+                            except Exception as e:
+                                st.write("Could not compute encoded prediction:", e)
+                            try:
+                                if hasattr(model, 'predict_proba'):
+                                    proba = model.predict_proba(processed_input_df.values)
+                                    st.write("**Prediction probabilities (first row):**")
+                                    st.write(proba[0])
+                            except Exception as e:
+                                st.write("Could not compute probabilities:", e)
                     
                     except Exception as e:
                         st.error(f"❌ Prediction Error: {str(e)}")
